@@ -29,21 +29,27 @@ THRESHOLDS = {
 }
 
 # =============================================================================
-# GEOCODING — with rate limit fix for Nominatim 429 errors
+# GEOCODING — Fixed for Nominatim 429 errors
 # =============================================================================
+@st.cache_data(show_spinner="Geocoding location...")
 def geocode_city(city_name):
     try:
-        # Use a unique user_agent each call to avoid OSM rate-limit blocks
+        # Use a STATIC, identifiable user_agent. 
+        # (It's best practice to put your actual email here)
         geolocator = Nominatim(
-            user_agent=f"facade_wind_pressure_analyzer_{int(time.time())}",
+            user_agent="facade_wind_analyzer_v1_your_email@example.com", 
             timeout=10,
         )
+        
         # Respect Nominatim's rule: max 1 request per second
         time.sleep(1)
+        
         location = geolocator.geocode(city_name)
+        
         if location is None:
             return None
         return location.latitude, location.longitude, location.address
+        
     except geopy.exc.GeocoderTimedOut:
         st.error("⏱️ Geocoding timed out. Please try again.")
         return None
