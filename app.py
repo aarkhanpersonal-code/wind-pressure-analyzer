@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -28,14 +29,17 @@ THRESHOLDS = {
 }
 
 # =============================================================================
-# GEOCODING
+# GEOCODING — with rate limit fix for Nominatim 429 errors
 # =============================================================================
 def geocode_city(city_name):
     try:
+        # Use a unique user_agent each call to avoid OSM rate-limit blocks
         geolocator = Nominatim(
-            user_agent="facade_wind_pressure_analyzer_v2",
+            user_agent=f"facade_wind_pressure_analyzer_{int(time.time())}",
             timeout=10,
         )
+        # Respect Nominatim's rule: max 1 request per second
+        time.sleep(1)
         location = geolocator.geocode(city_name)
         if location is None:
             return None
@@ -366,9 +370,8 @@ if analyze_btn:
     st.subheader("📋 Facade Specification Recommendation")
     st.caption("Automatic spec guidance based on real pressure data — ready to include in a design report or client presentation.")
 
-    monthly_overall_named = monthly_overall.copy()
-    worst_month = monthly_overall_named.loc[monthly_overall_named["gust_pressure_pa"].idxmax(), "month_name"]
-    best_month = monthly_overall_named.loc[monthly_overall_named["gust_pressure_pa"].idxmin(), "month_name"]
+    worst_month = monthly_overall.loc[monthly_overall["gust_pressure_pa"].idxmax(), "month_name"]
+    best_month = monthly_overall.loc[monthly_overall["gust_pressure_pa"].idxmin(), "month_name"]
 
     st.markdown(
         f"#### 📍 {city_name} &nbsp;|&nbsp; 📅 {start_date} → {end_date} ({years_of_data:.1f} years)\n"
